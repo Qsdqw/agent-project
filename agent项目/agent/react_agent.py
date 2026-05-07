@@ -1,34 +1,62 @@
-import sys
-import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from uuid import uuid4
 
 from langchain.agents import create_agent
-from model.factory import chat_model
+from langgraph.checkpoint.memory import MemorySaver
+from langchain_core.messages import AIMessageChunk, HumanMessage, AIMessage
+
+from model.factory import get_chat_model
 from utils.prompt_loader import load_system_prompts
 from agent.tools.middleware import *
 from agent.tools.agent_tools import *
 
-class  ReactAgent:
+
+class ReactAgent:
     def __init__(self):
-        self.agent=create_agent(
-            model=chat_model,
+        self.memory = MemorySaver()
+        self.agent = create_agent(
+            model=get_chat_model(),
             system_prompt=load_system_prompts(),
-            tools=[rag_summarize,get_weather,get_user_location,get_user_id,
-            get_current_month,fetch_external_data,fill_context_for_report],
-            middleware=[monitor_tool,log_before_model,report_prompt_switch]
+            tools=[rag_summarize, get_weather, get_user_location, get_user_id,
+                   get_current_month, fetch_external_data, fill_context_for_report],
+            middleware=[monitor_tool, log_before_model, report_prompt_switch],
+            checkpointer=self.memory
         )
-    def execute_stream(self,query:str):
-        input_dict={
-            "messages":[
-                {"role":"user","content":query},
+
+    def restore_from_messages(self, messages: list[dict], thread_id: str):
+        langchain_messages = []
+        for m in messages:
+            if m["role"] == "user":
+                langchain_messages.append(HumanMessage(content=m["content"]))
+            elif m["role"] == "assistant":
+                langchain_messages.append(AIMessage(content=m["content"]))
+
+        config = {"configurable": {"thread_id": thread_id}}
+        self.agent.update_state(config, {"messages": langchain_messages})
+
+    def execute_stream(self, query: str, thread_id: str = None):
+        if thread_id is None:
+            thread_id = str(uuid4())
+
+        input_dict = {
+            "messages": [
+                {"role": "user", "content": query},
             ]
         }
-        for chunk in self.agent.stream(input_dict,stream_mode="values",context={"report":False}):
-            latest_message=chunk["messages"][-1]
-            if latest_message.content:
-                yield latest_message.content.strip()+"\n"
-if __name__=="__main__":
-    agent=ReactAgent()
+        config = {"configurable": {"thread_id": thread_id}}
 
-    for chunk in agent.execute_stream("扫地机器人在我所在的地区气温下如何保养"):
-        print(chunk)
+        for chunk in self.agent.stream(
+            input_dict,
+            stream_mode="messages",
+            config=config,
+            context={"report": False}
+        ):
+            msg, meta = chunk
+            if isinstance(msg, AIMessageChunk) and msg.content and not msg.tool_calls:
+                yield msg.content
+
+
+if __name__ == "__main__":
+    agent = ReactAgent()
+    tid = str(uuid4())
+    for token in agent.execute_stream("扫地机器人在我所在的地区气温下如何保养", thread_id=tid):
+        print(token, end="", flush=True)

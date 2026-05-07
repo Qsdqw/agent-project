@@ -1,89 +1,89 @@
 import os
-import sys
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from langchain_chroma import Chroma
-from langchain_core.tools import retriever
-from requests.api import get
-from utils.config_handler import chroma_conf
-from model.factory import embed_model
+from utils.config_loader import chroma_conf
+from model.factory import get_embed_model
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from utils.path_tool import get_abs_path
-from utils.file_handle import pdf_loader,txt_loader,listdir_with_allowed_type,get_file_md5_hex
-from utils.logger_handler import logger
+from utils.file_utils import pdf_loader, txt_loader, listdir_with_allowed_type, get_file_md5_hex
+from utils.logger import logger
 from langchain_core.documents import Document
-
 
 
 class VectorStoreService:
     def __init__(self):
-        self.vector_store=Chroma(
+        self.vector_store = Chroma(
             collection_name=chroma_conf["collection_name"],
-            embedding_function=embed_model,
+            embedding_function=get_embed_model(),
             persist_directory=chroma_conf["persist_directory"],
-
-
         )
-        self.spliter=RecursiveCharacterTextSplitter(
+        self.spliter = RecursiveCharacterTextSplitter(
             chunk_size=chroma_conf["chunk_size"],
             chunk_overlap=chroma_conf["chunk_overlap"],
             separators=chroma_conf["separators"],
             length_function=len
         )
-    def get_retriever(self):
-        return self.vector_store.as_retriever(search_kwargs={"k": chroma_conf["k"]})
+
+    def get_retriever(self, k: int = None):
+        if k is None:
+            k = chroma_conf["k"]
+        return self.vector_store.as_retriever(search_kwargs={"k": k})
+
     def load_document(self):
-        def check_md5_hex(md5_for_check:str):
+        def check_md5_hex(md5_for_check: str):
             md5_store_path = get_abs_path(chroma_conf["md5_hex_store"])
             if not os.path.exists(md5_store_path):
                 open(md5_store_path, "w", encoding="utf-8").close()
                 return False
             with open(md5_store_path, "r", encoding="utf-8") as f:
                 for line in f.readlines():
-                    line=line.strip()
-                    if line==md5_for_check:
+                    line = line.strip()
+                    if line == md5_for_check:
                         return True
                 return False
-        def save_md5_hex(md5_for_check:str):
+
+        def save_md5_hex(md5_for_check: str):
             with open(get_abs_path(chroma_conf["md5_hex_store"]), "a", encoding="utf-8") as f:
-                f.write(md5_for_check+"\n")
-        def get_file_documents(read_path:str):
+                f.write(md5_for_check + "\n")
+
+        def get_file_documents(read_path: str):
             if read_path.endswith("txt"):
                 return txt_loader(read_path)
             if read_path.endswith("pdf"):
                 return pdf_loader(read_path)
             return []
-        allowed_files_path=listdir_with_allowed_type(get_abs_path(chroma_conf["data_path"]),tuple(chroma_conf["allow_knowledge_file_type"]))
+
+        allowed_files_path = listdir_with_allowed_type(
+            get_abs_path(chroma_conf["data_path"]),
+            tuple(chroma_conf["allow_knowledge_file_type"])
+        )
         for path in allowed_files_path:
-            #获取文件的md5
-            md5_hex=get_file_md5_hex(path)
+            md5_hex = get_file_md5_hex(path)
             if check_md5_hex(md5_hex):
                 logger.info(f"[加载知识库]{path}内容已经存在知识库内,跳过")
                 continue
             try:
-                documents:list[Document]=get_file_documents(path)
+                documents: list[Document] = get_file_documents(path)
                 if not documents:
-                    logger.waring(f"[加载知识库]{path}内没有有效文本内容,跳过")
+                    logger.warning(f"[加载知识库]{path}内没有有效文本内容,跳过")
                     continue
-                split_document:list[Document]=self.spliter.split_documents(documents)
+                split_document: list[Document] = self.spliter.split_documents(documents)
                 if not split_document:
-                    logger.waring(f"[加载知识库]{path}分片后没有有效文本内容,跳过")
+                    logger.warning(f"[加载知识库]{path}分片后没有有效文本内容,跳过")
                     continue
-                #将内容存入向量库
                 self.vector_store.add_documents(split_document)
-
-                #记录这个已经处理好的文件md5.避免下次重复加载
                 save_md5_hex(md5_hex)
-
                 logger.info(f"[加载数据库]{path}内容加载成功")
             except Exception as e:
-                logger.error(f"[加载知识库]{path}加载失败:{str(e)}",exc_info=True)
+                logger.error(f"[加载知识库]{path}加载失败:{str(e)}", exc_info=True)
                 continue
-if __name__=='__main__':
-    vs=VectorStoreService()
-    vs.load_document()
-    retriever=vs.get_retriever()
 
-    res=retriever.invoke("迷路")
+
+if __name__ == '__main__':
+    vs = VectorStoreService()
+    vs.load_document()
+    retriever = vs.get_retriever()
+    res = retriever.invoke("迷路")
     for r in res:
         print(r.page_content)
-        print("-"*20)
+        print("-" * 20)

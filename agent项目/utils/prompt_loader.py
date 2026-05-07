@@ -1,10 +1,6 @@
-
-import os
-import sys
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils.logger_handler import logger
+from utils.logger import logger
 from utils.path_tool import get_abs_path
-from utils.config_handler import prompts_conf
+from utils.config_loader import prompts_conf
 
 def load_system_prompts():
     try:
@@ -27,7 +23,7 @@ def load_rag_prompts():
     try:
         return open(rag_prompt_path, "r", encoding="utf-8").read()
     except Exception as e:
-        logger.error(f"[load_rag_prompts] 读取系统提示词失败: {e}")
+        logger.error(f"[load_rag_prompts] 读取RAG提示词失败: {e}")
         raise e
 
 def load_report_prompts():
@@ -39,7 +35,7 @@ def load_report_prompts():
     try:
         return open(report_prompt_path, "r", encoding="utf-8").read()
     except Exception as e:
-        logger.error(f"[load_report_prompts] 读取系统提示词失败: {e}")
+        logger.error(f"[load_report_prompts] 读取报告提示词失败: {e}")
         raise e
 
 if __name__ == "__main__":

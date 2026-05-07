@@ -1,12 +1,9 @@
-import sys
-import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from typing import Callable
 from langchain.agents.middleware import AgentState, ModelRequest, before_model, dynamic_prompt, wrap_tool_call
 from langchain.tools.tool_node import ToolCallRequest
 from langchain_core.messages import ToolMessage
 from langgraph.types import Command
-from utils.logger_handler import logger
+from utils.logger import logger
 from langgraph.runtime import Runtime
 from utils.prompt_loader import load_system_prompts,load_report_prompts
 
@@ -32,12 +29,16 @@ def monitor_tool(
         raise e
 @before_model
 def log_before_model(
-    state:AgentState,   #整个Agent智能体中的状态记录
-    runtime:Runtime,   #整个执行过程中的上下文消息
-    
-):#在模型执行前输出日志
+    state: AgentState,
+    runtime: Runtime,
+):
     logger.info(f"[log_before_model]:即将调用模型,带有{len(state['messages'])}条消息")
-    logger.debug(f"[log_before_model]{type(state['messages'][-1])}:消息内容{state['messages'][-1].content.strip()}")
+    last_msg = state["messages"][-1]
+    # content 可能为 None（如 ToolMessage），safe_str 做空值保护
+    content = getattr(last_msg, "content", None)
+    content_str = str(content) if content is not None else ""
+    preview = content_str[:80].strip()
+    logger.debug(f"[log_before_model] {type(last_msg)}: {preview}")
     return None
 @dynamic_prompt#每一次在生成提示词之前,调用此函数
 def report_prompt_switch(request:ModelRequest):#动态切换提示词

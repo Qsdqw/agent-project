@@ -1,1 +1,16 @@
 external_data_path: data/external/records.csv
+
+# 高德地图API配置
+amap_api_key: ${AMAP_API_KEY:}
+amap_weather_url: https://restapi.amap.com/v3/weather/weatherInfo
+amap_ip_location_url: https://restapi.amap.com/v3/ip
+
+# JWT 密钥（通过 .env 配置，勿在代码中硬编码）
+jwt_secret: ${JWT_SECRET:}
+
+# MySQL
+mysql_host: ${MYSQL_HOST:localhost}
+mysql_port: ${MYSQL_PORT:3306}
+mysql_user: ${MYSQL_USER:root}
+mysql_password: ${MYSQL_PASSWORD:}
+mysql_database: ${MYSQL_DATABASE:agent_chat}

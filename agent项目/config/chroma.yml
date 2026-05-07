@@ -7,4 +7,4 @@ allow_knowledge_file_type: ["pdf", "txt"]
 
 chunk_size: 200
 chunk_overlap: 20
-separators: ["\n","\n\n","。","，","！","？","！","？"]
+separators: ["\n","\n\n","。","，","！","？"]
