@@ -13,10 +13,11 @@ Streamlit 前端 — 登录/注册 + 聊天界面
   1. URL 参数会被浏览器历史、日志记录，不安全
   2. HTTP 头是标准的认证方式，所有 HTTP 客户端都支持
 """
+import os
 import streamlit as st
 import requests
 
-API_BASE = "http://localhost:8000"
+API_BASE = os.getenv("API_BASE", "http://localhost:8000")
 REQUEST_TIMEOUT = 5  # 请求超时秒数
 
 

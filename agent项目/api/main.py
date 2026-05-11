@@ -13,8 +13,10 @@ from storage.session import (
 )
 from storage.mysql import init_db
 from storage.auth import delete_inactive_users
+from storage.vector import VectorStoreService
 from api.deps import get_current_user
 from api.router import router as auth_router
+from utils.logger import logger
 
 app = FastAPI(title="智扫通智能客服 API")
 
@@ -78,8 +80,12 @@ class ChatRequest(BaseModel):
 @app.on_event("startup")
 def startup():
     init_db()
-    # 每次启动清理超过一年未登录的用户（CASCADE 自动删除其会话和消息）
     delete_inactive_users(inactive_days=365)
+    try:
+        VectorStoreService().load_document()
+        logger.info("[Startup] 知识库向量索引已就绪")
+    except Exception as e:
+        logger.warning(f"[Startup] 知识库索引加载失败（RAG 功能可能不可用）: {e}")
 
 
 # ── 会话管理端点 ────────────────────────────────
