@@ -1,0 +1,35 @@
+# 密钥
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# 虚拟环境
+venv/
+.venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 数据持久化
+chroma_db/
+*.sqlite3
+
+# 日志
+logs/
+*.log
+
+# 缓存
+md5.text
+
+# OS
+.DS_Store
+Thumbs.db

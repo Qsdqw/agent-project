@@ -1,30 +1,46 @@
 import os
+import hashlib
+import random
 import requests
-from functools import lru_cache
+from datetime import datetime
 
 from langchain_core.tools import tool
 from utils.config_loader import agent_conf
-from rag.rag_service import RagSummarizeService
-import random
-from datetime import datetime
-from tenacity import retry, stop_after_attempt, wait_fixed
-
-rag = RagSummarizeService()
 from utils.path_tool import get_abs_path
 from utils.logger import logger
+from rag.rag_service import RagSummarizeService
+from storage.redis_client import get_redis
+from tenacity import retry, stop_after_attempt, wait_fixed
 
-user_ids = ["1001", "1002", "1003", "1004", "1005", "1006", "1007", "1008", "1009", "1010"]
+_rag = None
 external_data = {}
 
 
+def _get_rag() -> RagSummarizeService:
+    global _rag
+    if _rag is None:
+        _rag = RagSummarizeService()
+    return _rag
+
+RAG_CACHE_TTL = 86400  # 24 小时
+
+
 @tool(description="从向量存储中检索参考资料")
-@lru_cache(maxsize=128)  # 同样的问题命中缓存，不重复调模型
 def rag_summarize(query: str) -> str:
-    return rag.rag_summarize(query)
+    r = get_redis()
+    cache_key = f"rag:cache:{hashlib.sha256(query.encode()).hexdigest()}"
+    cached = r.get(cache_key)
+    if cached is not None:
+        return cached
+
+    result = _get_rag().rag_summarize(query)
+    r.set(cache_key, result, ex=RAG_CACHE_TTL)
+    return result
 
 
+@retry(stop=stop_after_attempt(2), wait=wait_fixed(2), reraise=True)
 def _fetch_weather_from_api(city: str) -> str:
-    """实际调用高德天气API（供 retry 包装）"""
+    """实际调用高德天气API，网络异常时自动重试1次"""
     api_key = agent_conf.get("amap_api_key")
     base_url = agent_conf.get("amap_weather_url", "https://restapi.amap.com/v3/weather/weatherInfo")
     url = f"{base_url}?city={requests.utils.quote(city)}&key={api_key}&extensions=base"
@@ -54,7 +70,6 @@ def _fetch_weather_from_api(city: str) -> str:
 
 
 @tool(description="获取指定城市的天气,以消息字符串的形式返回")
-@retry(stop=stop_after_attempt(2), wait=wait_fixed(2), reraise=True)
 def get_weather(city: str) -> str:
     """调用高德地图天气API获取天气信息，网络异常时自动重试1次"""
     api_key = agent_conf.get("amap_api_key")
@@ -69,8 +84,9 @@ def get_weather(city: str) -> str:
         return f"获取城市{city}天气信息失败：{str(e)}"
 
 
+@retry(stop=stop_after_attempt(2), wait=wait_fixed(2), reraise=True)
 def _fetch_location_from_api() -> str:
-    """实际调用高德IP定位API（供 retry 包装）"""
+    """实际调用高德IP定位API，网络异常时自动重试1次"""
     api_key = agent_conf.get("amap_api_key")
     base_url = agent_conf.get("amap_ip_location_url", "https://restapi.amap.com/v3/ip")
     url = f"{base_url}?key={api_key}"
@@ -90,7 +106,6 @@ def _fetch_location_from_api() -> str:
 
 
 @tool(description="获取用户所在城市的名称,以纯字符串形式返回")
-@retry(stop=stop_after_attempt(2), wait=wait_fixed(2), reraise=True)
 def get_user_location() -> str:
     """调用高德地图IP定位API获取用户所在城市，网络异常时自动重试1次"""
     api_key = agent_conf.get("amap_api_key")
@@ -109,7 +124,7 @@ def get_user_location() -> str:
 
 @tool(description="获取当前用户ID")
 def get_user_id() -> str:
-    return random.choice(user_ids)
+    return "unknown"
 
 
 @tool(description="获取当前日期时间")

@@ -5,7 +5,7 @@ from utils.config_loader import chroma_conf
 from model.factory import get_embed_model
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from utils.path_tool import get_abs_path
-from utils.file_utils import pdf_loader, txt_loader, listdir_with_allowed_type, get_file_md5_hex
+from utils.file_handler import pdf_loader, txt_loader, listdir_with_allowed_type, get_file_md5_hex
 from utils.logger import logger
 from langchain_core.documents import Document
 
@@ -17,7 +17,7 @@ class VectorStoreService:
             embedding_function=get_embed_model(),
             persist_directory=chroma_conf["persist_directory"],
         )
-        self.spliter = RecursiveCharacterTextSplitter(
+        self.splitter = RecursiveCharacterTextSplitter(
             chunk_size=chroma_conf["chunk_size"],
             chunk_overlap=chroma_conf["chunk_overlap"],
             separators=chroma_conf["separators"],
@@ -67,7 +67,7 @@ class VectorStoreService:
                 if not documents:
                     logger.warning(f"[加载知识库]{path}内没有有效文本内容,跳过")
                     continue
-                split_document: list[Document] = self.spliter.split_documents(documents)
+                split_document: list[Document] = self.splitter.split_documents(documents)
                 if not split_document:
                     logger.warning(f"[加载知识库]{path}分片后没有有效文本内容,跳过")
                     continue

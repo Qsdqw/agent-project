@@ -108,14 +108,21 @@ def new_session(body: SessionCreate, user_id: int = Depends(get_current_user)):
 
 @app.delete("/api/sessions/{session_id}")
 def remove_session(session_id: str, user_id: int = Depends(get_current_user)):
-    delete_session(session_id, user_id=user_id)  # user_id 校验：仅能删自己的会话
+    deleted = delete_session(session_id, user_id=user_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="会话不存在")
     agent_pool.pop(session_id, None)
     return {"ok": True}
 
 
 @app.get("/api/sessions/{session_id}/messages")
 def session_messages(session_id: str, user_id: int = Depends(get_current_user)):
-    return get_messages(session_id)
+    messages = get_messages(session_id, user_id=user_id)
+    if not messages:
+        sessions = get_all_sessions(user_id)
+        if not any(s["id"] == session_id for s in sessions):
+            raise HTTPException(status_code=404, detail="会话不存在")
+    return messages
 
 
 # ── 聊天端点 ────────────────────────────────────
@@ -123,7 +130,6 @@ def session_messages(session_id: str, user_id: int = Depends(get_current_user)):
 @app.post("/api/chat/stream")
 def chat_stream(body: ChatRequest, user_id: int = Depends(get_current_user)):
     session_id = body.session_id
-    history = get_messages(session_id)
 
     sessions = get_all_sessions(user_id)
     thread_id = None
@@ -134,15 +140,16 @@ def chat_stream(body: ChatRequest, user_id: int = Depends(get_current_user)):
     if not thread_id:
         raise HTTPException(status_code=404, detail="会话不存在")
 
+    history = get_messages(session_id, user_id=user_id)
     agent = get_or_create_agent(session_id, thread_id, history)
 
     save_message(session_id, "user", body.message)
     if len(history) == 0:
-        update_session_title(session_id, body.message)
+        update_session_title(session_id, body.message, user_id=user_id)
 
     def generate():
         full_response = []
-        for token in agent.execute_stream(body.message, thread_id=thread_id):
+        for token in agent.execute_stream(body.message, thread_id=thread_id, user_id=user_id):
             full_response.append(token)
             yield token
         save_message(session_id, "assistant", "".join(full_response))

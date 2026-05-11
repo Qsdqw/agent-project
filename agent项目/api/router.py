@@ -10,10 +10,11 @@
 - passlib: Python 的密码哈希库，封装了 bcrypt 等算法，接口简单
 - JWT 在登录时签发，客户端保存，后续请求带上
 """
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 import bcrypt
-from api.deps import create_access_token
+from api.deps import create_access_token, revoke_token, get_current_user, security
 from storage.auth import create_user, get_user_by_username, update_last_login
 
 router = APIRouter(prefix="/api/auth", tags=["认证"])
@@ -96,3 +97,13 @@ def login(body: LoginRequest):
     update_last_login(user["id"])
     token = create_access_token(user["id"])
     return {"ok": True, "user_id": user["id"], "username": user["username"], "token": token}
+
+
+@router.post("/logout")
+def logout(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    user_id: int = Depends(get_current_user),
+):
+    """登出：将当前 token 加入黑名单"""
+    revoke_token(credentials.credentials)
+    return {"ok": True}

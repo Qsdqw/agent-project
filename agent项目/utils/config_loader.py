@@ -8,8 +8,6 @@ from utils.path_tool import get_abs_path
 dotenv_path = get_abs_path(".env")
 if os.path.exists(dotenv_path):
     load_dotenv(dotenv_path)
-
-
 def _resolve_env_vars(value):
     if isinstance(value, str):
         pattern = r'\$\{(\w+)(?::([^}]*))?\}'
@@ -27,26 +25,26 @@ def _resolve_env_vars(value):
 
 def load_rag_config(config_path: str = get_abs_path("config/rag.yml"), encoding: str = "utf-8"):
     with open(config_path, "r", encoding=encoding) as f:
-        config = yaml.load(f, Loader=yaml.FullLoader)
-    return _resolve_env_vars(config)
+        raw = yaml.load(f, Loader=yaml.FullLoader)
+    return _resolve_env_vars(raw)
 
 
 def load_chroma_config(config_path: str = get_abs_path("config/chroma.yml"), encoding: str = "utf-8"):
     with open(config_path, "r", encoding=encoding) as f:
-        config = yaml.load(f, Loader=yaml.FullLoader)
-    return _resolve_env_vars(config)
+        raw = yaml.load(f, Loader=yaml.FullLoader)
+    return _resolve_env_vars(raw)
 
 
 def load_prompts_config(config_path: str = get_abs_path("config/prompts.yml"), encoding: str = "utf-8"):
     with open(config_path, "r", encoding=encoding) as f:
-        config = yaml.load(f, Loader=yaml.FullLoader)
-    return _resolve_env_vars(config)
+        raw = yaml.load(f, Loader=yaml.FullLoader)
+    return _resolve_env_vars(raw)
 
 
 def load_agent_config(config_path: str = get_abs_path("config/agent.yml"), encoding: str = "utf-8"):
     with open(config_path, "r", encoding=encoding) as f:
-        config = yaml.load(f, Loader=yaml.FullLoader)
-    return _resolve_env_vars(config)
+        raw = yaml.load(f, Loader=yaml.FullLoader)
+    return _resolve_env_vars(raw)
 
 
 rag_conf = load_rag_config()

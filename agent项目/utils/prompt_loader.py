@@ -4,7 +4,7 @@ from utils.config_loader import prompts_conf
 
 def load_system_prompts():
     try:
-        system_prompt_path=get_abs_path(prompts_conf["main_prompt_path"])
+        system_prompt_path = get_abs_path(prompts_conf["main_prompt_path"])
     except KeyError as e:
         logger.error(f"[load_system_prompts] 配置文件中缺少 {e}")
         raise e
@@ -16,7 +16,7 @@ def load_system_prompts():
 
 def load_rag_prompts():
     try:
-        rag_prompt_path=get_abs_path(prompts_conf["rag_summarize_prompt_path"])
+        rag_prompt_path = get_abs_path(prompts_conf["rag_summarize_prompt_path"])
     except KeyError as e:
         logger.error(f"[load_rag_prompts] 配置文件中缺少 {e}")
         raise e
@@ -28,7 +28,7 @@ def load_rag_prompts():
 
 def load_report_prompts():
     try:
-        report_prompt_path=get_abs_path(prompts_conf["report_prompt_path"])
+        report_prompt_path = get_abs_path(prompts_conf["report_prompt_path"])
     except KeyError as e:
         logger.error(f"[load_report_prompts] 配置文件中缺少 {e}")
         raise e

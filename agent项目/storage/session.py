@@ -34,8 +34,8 @@ def get_all_sessions(user_id: int) -> list[dict]:
         conn.close()
 
 
-def delete_session(session_id: str, user_id: int):
-    """删除会话（仅当会话属于该用户时生效）"""
+def delete_session(session_id: str, user_id: int) -> bool:
+    """删除会话（仅当会话属于该用户时生效），返回是否成功删除"""
     conn = get_connection()
     try:
         with conn.cursor() as cur:
@@ -43,7 +43,9 @@ def delete_session(session_id: str, user_id: int):
                 "DELETE FROM sessions WHERE id = %s AND user_id = %s",
                 (session_id, user_id),
             )
-        logger.info(f"[Session] 删除会话: {session_id}")
+            deleted = cur.rowcount > 0
+        logger.info(f"[Session] 删除会话: {session_id}, 成功={deleted}")
+        return deleted
     finally:
         conn.close()
 
@@ -60,28 +62,42 @@ def save_message(session_id: str, role: str, content: str):
         conn.close()
 
 
-def get_messages(session_id: str) -> list[dict]:
+def get_messages(session_id: str, user_id: int = None) -> list[dict]:
     conn = get_connection()
     try:
         with conn.cursor() as cur:
-            cur.execute(
-                "SELECT role, content FROM messages WHERE session_id = %s ORDER BY id ASC",
-                (session_id,)
-            )
+            if user_id is not None:
+                cur.execute(
+                    "SELECT m.role, m.content FROM messages m "
+                    "JOIN sessions s ON m.session_id = s.id "
+                    "WHERE m.session_id = %s AND s.user_id = %s ORDER BY m.id ASC",
+                    (session_id, user_id)
+                )
+            else:
+                cur.execute(
+                    "SELECT role, content FROM messages WHERE session_id = %s ORDER BY id ASC",
+                    (session_id,)
+                )
             return cur.fetchall()
     finally:
         conn.close()
 
 
-def update_session_title(session_id: str, title: str):
+def update_session_title(session_id: str, title: str, user_id: int = None):
     if len(title) > 50:
         title = title[:50]
     conn = get_connection()
     try:
         with conn.cursor() as cur:
-            cur.execute(
-                "UPDATE sessions SET title = %s WHERE id = %s",
-                (title, session_id)
-            )
+            if user_id is not None:
+                cur.execute(
+                    "UPDATE sessions SET title = %s WHERE id = %s AND user_id = %s",
+                    (title, session_id, user_id)
+                )
+            else:
+                cur.execute(
+                    "UPDATE sessions SET title = %s WHERE id = %s",
+                    (title, session_id)
+                )
     finally:
         conn.close()

@@ -26,7 +26,7 @@ RETRIEVAL_K = 10
 RERANK_TOP_N = 3
 
 
-class RagSummarizeService(object):
+class RagSummarizeService:
     def __init__(self):
         self.vector_store = VectorStoreService()
         self.retriever = self.vector_store.get_retriever(k=RETRIEVAL_K)

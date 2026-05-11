@@ -14,3 +14,8 @@ mysql_port: ${MYSQL_PORT:3306}
 mysql_user: ${MYSQL_USER:root}
 mysql_password: ${MYSQL_PASSWORD:}
 mysql_database: ${MYSQL_DATABASE:agent_chat}
+
+# Redis
+redis_host: ${REDIS_HOST:localhost}
+redis_port: ${REDIS_PORT:6379}
+redis_password: ${REDIS_PASSWORD:}

@@ -1,21 +1,35 @@
 import pymysql
+from dbutils.pooled_db import PooledDB
 from utils.config_loader import agent_conf
 from utils.logger import logger
 
 _db_initialized = False
+_pool = None
+
+
+def _get_pool():
+    global _pool
+    if _pool is None:
+        _pool = PooledDB(
+            creator=pymysql,
+            maxconnections=20,
+            mincached=2,
+            maxcached=10,
+            blocking=True,
+            host=agent_conf["mysql_host"],
+            port=int(agent_conf["mysql_port"]),
+            user=agent_conf["mysql_user"],
+            password=agent_conf["mysql_password"],
+            database=agent_conf["mysql_database"],
+            charset="utf8mb4",
+            cursorclass=pymysql.cursors.DictCursor,
+            autocommit=True,
+        )
+    return _pool
 
 
 def get_connection():
-    return pymysql.connect(
-        host=agent_conf["mysql_host"],
-        port=int(agent_conf["mysql_port"]),
-        user=agent_conf["mysql_user"],
-        password=agent_conf["mysql_password"],
-        database=agent_conf["mysql_database"],
-        charset="utf8mb4",
-        cursorclass=pymysql.cursors.DictCursor,
-        autocommit=True
-    )
+    return _get_pool().connection()
 
 
 def init_db():
