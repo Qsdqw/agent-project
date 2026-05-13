@@ -18,7 +18,7 @@ import streamlit as st
 import requests
 
 API_BASE = os.getenv("API_BASE", "http://localhost:8000")
-REQUEST_TIMEOUT = 5  # 请求超时秒数
+REQUEST_TIMEOUT = 30  # 请求超时秒数
 
 
 # ── API 调用工具函数 ───────────────────────────

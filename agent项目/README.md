@@ -66,22 +66,23 @@ agent项目/
 
 ### 前置要求
 
-- [Docker](https://docs.docker.com/get-docker/)
-- 阿里百炼 API Key（[免费申请](https://bailian.console.aliyun.com/)）
+- [Docker Desktop](https://docs.docker.com/get-docker/)（已安装可跳过）
+- 阿里百炼 API Key（[免费申请](https://bailian.console.aliyun.com/)，新用户有免费额度）
 
 ### 1. 配置
 
 ```bash
+# 复制环境变量模板
 cp .env.example .env
 ```
 
-编辑 `.env`，填入必填项：
+编辑 `.env`，**只改一行**：
 
 ```ini
-DASHSCOPE_API_KEY=你的百炼API密钥
+DASHSCOPE_API_KEY=sk-你的百炼API密钥
 ```
 
-可选配置（高德天气、JWT、数据库密码等）可直接用默认值。
+其余配置用默认值即可，无需修改。
 
 ### 2. 一键启动
 
@@ -89,11 +90,11 @@ DASHSCOPE_API_KEY=你的百炼API密钥
 docker-compose up -d --build
 ```
 
-首次启动会下载镜像、安装依赖、下载 Cross-Encoder 模型、构建向量索引，约 3-5 分钟。后续启动秒级完成。
+首次启动约 3-5 分钟，自动完成：拉取镜像 → 安装依赖 → 下载 Cross-Encoder 模型 → 构建向量索引。之后再启动就是秒级。
 
 ### 3. 打开浏览器
 
-- 前端界面：**http://localhost:8501**
+- **前端界面**：http://localhost:8501
 - 健康检查：http://localhost:8000/api/health
 
 注册账号后即可开始对话。

@@ -11,8 +11,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
 
-# 复制项目
+# 复制项目 + 启动入口
 COPY . .
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # HuggingFace 模型缓存目录（设为卷持久化，避免每次重启重下载 Cross-Encoder）
 ENV HF_HOME=/app/.cache/huggingface
@@ -22,5 +24,5 @@ ENV CHROMA_TELEMETRY_IMPL=none
 
 EXPOSE 8000 8501
 
-# 默认启动 FastAPI；docker-compose 会覆盖 command
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
